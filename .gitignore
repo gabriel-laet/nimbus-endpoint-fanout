@@ -4,3 +4,7 @@ app/api/records
 app/api/ingress
 lib/kernel
 lib/ops
+lib/schema
+lib/kit
+lib/islands
+app/(desk)

@@ -6,10 +6,12 @@ This is **not** a copy of a product app. Invented trees:
 
 | Tree | Path | What it stands in for |
 |---|---|---|
-| **records** | `app/api/records/**` | A REST-ish resource API: one dynamic `[recordId]` folder with many operations, plus a `public/` folder. ~60 `route.ts` files. |
-| **ingress** | `app/api/ingress/**` | Inbound callbacks (one file per provider/event). ~48 `route.ts` files. |
-| **kernel** | `lib/kernel` | Zod schemas, 2000 modules, one barrel. |
-| **ops** | `lib/ops/*` | **One unique file per route** that `import *` the kernel — so Turbopack cannot collapse every handler to the same module identity. |
+| **records** | `app/api/records/**` | REST-ish resource API (~60 `route.ts`). |
+| **ingress** | `app/api/ingress/**` | Inbound callbacks (~48 `route.ts`). |
+| **desk** | `app/(desk)/**` | Matching `"use client"` pages (one per route). |
+| **schema** | `lib/schema` | Cyclic Drizzle + Zod tables (default 400). |
+| **kit** | `lib/kit` | Cyclic `"use client"` widgets (default 400). |
+| **ops / islands** | `lib/ops`, `lib/islands` | **Unique per endpoint.** Each op imports every schema file; each island imports every kit file. |
 
 Every generated `route.ts` imports `@/lib/kernel`. The unique module set is the same whether you have 1 route or 60.
 
@@ -51,7 +53,9 @@ pnpm build
 pnpm build:webpack
 ```
 
-`NIMBUS_MODULES=4000 pnpm generate:records` grows the kernel if 2000 is not enough to OOM on your box. First cut used 800 modules and `import()` inside the kernel — that **compiled in ~74s / ~5 GiB** and did **not** stall. Static `import *` of the barrel is required.
+A shared `import *` barrel **interned** and compiled in seconds (~5 GiB). This generator uses unique per-route ops/islands plus cyclic schema/kit instead.
+
+`NIMBUS_SCHEMA=600 NIMBUS_KIT=600 pnpm generate:records` to grow it.
 
 ## What “stall” looks like
 
