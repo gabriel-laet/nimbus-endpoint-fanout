@@ -9,8 +9,8 @@ This is **not** a copy of a product app. Invented trees:
 | **records** | `app/api/records/**` | REST-ish resource API (~60 `route.ts`). |
 | **ingress** | `app/api/ingress/**` | Inbound callbacks (~48 `route.ts`). |
 | **desk** | `app/(desk)/**` | Matching `"use client"` pages (one per route). |
-| **schema** | `lib/schema` | Cyclic Drizzle + Zod tables (default 400). |
-| **kit** | `lib/kit` | Cyclic `"use client"` widgets (default 400). |
+| **schema** | `lib/schema` | Cyclic Drizzle + Zod tables (default 1200). |
+| **kit** | `lib/kit` | Cyclic `"use client"` widgets (default 1200). |
 | **ops / islands** | `lib/ops`, `lib/islands` | **Unique per endpoint.** Each op imports every schema file; each island imports every kit file. |
 
 Every generated `route.ts` imports `@/lib/kernel`. The unique module set is the same whether you have 1 route or 60.
@@ -37,8 +37,8 @@ Next `16.4.0-canary.15` (the version the original stall was measured on). Linux,
 pnpm generate
 pnpm build
 
-# B — records tree (default 120 routes × 800 schema × 800 kit)
-NIMBUS_ROUTES=120 NIMBUS_SCHEMA=800 NIMBUS_KIT=800 pnpm generate:records
+# B — records tree (default 180 routes × 1200 schema × 1200 kit)
+pnpm generate:records
 pnpm build
 
 # C — first / second half of records (each should compile)
@@ -53,9 +53,16 @@ pnpm build
 pnpm build:webpack
 ```
 
-A shared `import *` barrel **interned** and compiled in seconds (~5 GiB). This generator uses unique per-route ops/islands plus cyclic schema/kit instead.
+Measured on Linux, 16 vCPU, **MemoryMax=16G**, Next `16.4.0-canary.15`, `turbopackFileSystemCacheForBuild: false`:
 
-`NIMBUS_SCHEMA=600 NIMBUS_KIT=600 pnpm generate:records` to grow it.
+| Command | Endpoints | Result |
+|---|---|---|
+| `pnpm generate:records && pnpm build` | 180 `route.ts` + 180 client pages | **SIGKILL 137** in 36s, RSS 16.0 GiB, never `Compiled`, `.next` 132 KB / 11 files |
+| `pnpm generate:single && pnpm build` | 1 route + 1 page, **same** 1200+1200 kernel | **Compiled** in 14s, RSS 1.6 GiB, `.next` 7 MB, exit 0 |
+
+Smaller graphs intern and compile (60×400 → 22s / 3.4 GiB; 120×800 → 51s / 9.3 GiB). Defaults are set at the OOM line.
+
+`NIMBUS_ROUTES` / `NIMBUS_SCHEMA` / `NIMBUS_KIT` override the knobs.
 
 ## What “stall” looks like
 

@@ -12,9 +12,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const ROUTES = Number(process.env.NIMBUS_ROUTES || 120);
-const SCHEMA = Number(process.env.NIMBUS_SCHEMA || 800);
-const KIT = Number(process.env.NIMBUS_KIT || 800);
+const ROUTES = Number(process.env.NIMBUS_ROUTES || 180);
+const SCHEMA = Number(process.env.NIMBUS_SCHEMA || 1200);
+const KIT = Number(process.env.NIMBUS_KIT || 1200);
 
 function arg(name, fallback = "") {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
