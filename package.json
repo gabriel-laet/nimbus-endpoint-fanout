@@ -9,6 +9,8 @@
     "generate:records-half-a": "node generate.mjs --tree=records --half=a",
     "generate:records-half-b": "node generate.mjs --tree=records --half=b",
     "generate:single": "node generate.mjs --tree=records --single",
+    "generate:async": "node generate.mjs --tree=async",
+    "generate:async-single": "node generate.mjs --tree=async --single",
     "build": "next build --turbopack",
     "build:webpack": "next build --webpack"
   },
