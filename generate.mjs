@@ -135,7 +135,7 @@ function islandFile(id, nKit) {
 ${imports.join("\n")}
 
 export function Island_${id}() {
-  return <span>{${uses.join(" + ")}</span>;
+  return <span>{${uses.join(" + ")}}</span>;
 }
 `;
 }
