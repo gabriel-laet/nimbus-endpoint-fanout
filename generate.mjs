@@ -161,33 +161,61 @@ function write(rel, body) {
 
 function kernelFile(i) {
   const id = String(i).padStart(4, "0");
-  return `export const k${id} = {
+  return `import { z } from "zod";
+
+export const schema${id} = z.object({
+  id: z.number(),
+  label: z.string(),
+  blob: z.string(),
+  nested: z.object({
+    a: z.number(),
+    b: z.string(),
+    tags: z.array(z.string()),
+    flags: z.record(z.boolean()),
+  }),
+});
+
+export const k${id} = {
   id: ${i},
   label: "kernel-${id}",
-  blob: "${"nimbus-kernel-".repeat(64)}",
-  fields: {
-    a: ${i},
-    b: "${id}",
-    c: Array.from({ length: 8 }, (_, j) => ${i} + j),
-  },
+  blob: "${"nimbus-kernel-".repeat(32)}",
+  nested: { a: ${i}, b: "${id}", tags: ["a", "b", "c"], flags: { on: true } },
 };
 
 export function f${id}() {
-  return k${id};
+  return schema${id}.parse(k${id});
 }
 `;
 }
 
-function routeFile(symbol) {
-  // import * forces the whole kernel barrel into this endpoint, matching
-  // many real route.ts files each pulling shared schema/auth barrels.
+function slug(rel) {
+  return rel
+    .replace(/^app\/api\//, "")
+    .replace(/\/route\.ts$/, "")
+    .replace(/\[|\]/g, "")
+    .replace(/\//g, "_");
+}
+
+function opFile(id, symbol) {
   return `import * as kernel from "@/lib/kernel";
+
+export function run${id}() {
+  const parsed = kernel.f0000();
+  return parsed.id + kernel.k0001.id + ${id.length};
+}
+
+export const symbol = ${JSON.stringify(symbol)};
+`;
+}
+
+function routeFile(symbol) {
+  const id = slug(symbol);
+  return `import { run${id}, symbol } from "@/lib/ops/${id}";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const n = kernel.f0000().id + kernel.k0000.fields.a;
-  return Response.json({ tree: "${symbol}", n, modules: Object.keys(kernel).length });
+  return Response.json({ tree: symbol, n: run${id}() });
 }
 `;
 }
@@ -198,14 +226,15 @@ function singleRouteFile() {
 export const runtime = "nodejs";
 
 export async function GET() {
-  const n = kernel.f0000().id + kernel.k0000.fields.a;
-  return Response.json({ tree: "single", n, modules: Object.keys(kernel).length });
+  const n = kernel.f0000().id + kernel.k0000.nested.a;
+  return Response.json({ tree: "single", n });
 }
 `;
 }
 
 function writeKernel() {
   rm("lib/kernel");
+  rm("lib/ops");
   const exports = [];
   for (let i = 0; i < MODULES; i++) {
     const id = String(i).padStart(4, "0");
@@ -249,7 +278,11 @@ function main() {
     );
     return;
   }
-  for (const rel of chosen) write(rel, routeFile(rel));
+  for (const rel of chosen) {
+    const id = slug(rel);
+    write(`lib/ops/${id}.ts`, opFile(id, rel));
+    write(rel, routeFile(rel));
+  }
   console.log(
     JSON.stringify(
       {

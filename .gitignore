@@ -3,3 +3,4 @@ node_modules
 app/api/records
 app/api/ingress
 lib/kernel
+lib/ops

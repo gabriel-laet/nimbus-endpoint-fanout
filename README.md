@@ -8,7 +8,8 @@ This is **not** a copy of a product app. Invented trees:
 |---|---|---|
 | **records** | `app/api/records/**` | A REST-ish resource API: one dynamic `[recordId]` folder with many operations, plus a `public/` folder. ~60 `route.ts` files. |
 | **ingress** | `app/api/ingress/**` | Inbound callbacks (one file per provider/event). ~48 `route.ts` files. |
-| **kernel** | `lib/kernel` | Shared domain barrel every handler imports (schema/auth/ORM-shaped). Default 2000 modules. Every `route.ts` does `import * as kernel from "@/lib/kernel"` (static, not `import()`). |
+| **kernel** | `lib/kernel` | Zod schemas, 2000 modules, one barrel. |
+| **ops** | `lib/ops/*` | **One unique file per route** that `import *` the kernel — so Turbopack cannot collapse every handler to the same module identity. |
 
 Every generated `route.ts` imports `@/lib/kernel`. The unique module set is the same whether you have 1 route or 60.
 
