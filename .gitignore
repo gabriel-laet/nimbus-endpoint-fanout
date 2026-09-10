@@ -1,0 +1,5 @@
+node_modules
+.next
+app/api/records
+app/api/ingress
+lib/kernel

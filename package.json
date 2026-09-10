@@ -1,0 +1,26 @@
+{
+  "name": "nimbus-endpoint-fanout",
+  "private": true,
+  "description": "Reduced Turbopack repro: many App Router route.ts files sharing one kernel barrel (vercel/next.js#97802).",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "generate:records": "node generate.mjs --tree=records",
+    "generate:ingress": "node generate.mjs --tree=ingress",
+    "generate:records-half-a": "node generate.mjs --tree=records --half=a",
+    "generate:records-half-b": "node generate.mjs --tree=records --half=b",
+    "generate:single": "node generate.mjs --tree=records --single",
+    "build": "next build --turbopack",
+    "build:webpack": "next build --webpack"
+  },
+  "dependencies": {
+    "next": "16.4.0-canary.15",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.3",
+    "@types/react": "19.1.4",
+    "@types/react-dom": "19.1.5",
+    "typescript": "5.9.2"
+  }
+}
