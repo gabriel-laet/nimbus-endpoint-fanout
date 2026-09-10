@@ -37,8 +37,8 @@ Next `16.4.0-canary.15` (the version the original stall was measured on). Linux,
 pnpm generate
 pnpm build
 
-# B — records tree only (~60). Original stall repro.
-pnpm generate:records
+# B — records tree (default 120 routes × 800 schema × 800 kit)
+NIMBUS_ROUTES=120 NIMBUS_SCHEMA=800 NIMBUS_KIT=800 pnpm generate:records
 pnpm build
 
 # C — first / second half of records (each should compile)
