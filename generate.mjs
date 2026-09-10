@@ -21,7 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const MODULES = Number(process.env.NIMBUS_MODULES || 800);
+const MODULES = Number(process.env.NIMBUS_MODULES || 2000);
 
 const RECORD_OPS = [
   "overview",
@@ -161,52 +161,45 @@ function write(rel, body) {
 
 function kernelFile(i) {
   const id = String(i).padStart(4, "0");
-  const next = (i + 1) % MODULES;
-  const prev = (i + MODULES - 1) % MODULES;
-  const nid = String(next).padStart(4, "0");
-  const pid = String(prev).padStart(4, "0");
   return `export const k${id} = {
   id: ${i},
   label: "kernel-${id}",
-  blob: "${"x".repeat(256)}",
+  blob: "${"nimbus-kernel-".repeat(64)}",
+  fields: {
+    a: ${i},
+    b: "${id}",
+    c: Array.from({ length: 8 }, (_, j) => ${i} + j),
+  },
 };
 
 export function f${id}() {
   return k${id};
 }
-
-export async function touch${id}() {
-  const { f${nid} } = await import("./mod-${nid}");
-  const { f${pid} } = await import("./mod-${pid}");
-  return f${id}().id + f${nid}().id + f${pid}().id;
-}
 `;
 }
 
 function routeFile(symbol) {
-  return `import { f0000, k0000, touch0000 } from "@/lib/kernel";
+  // import * forces the whole kernel barrel into this endpoint, matching
+  // many real route.ts files each pulling shared schema/auth barrels.
+  return `import * as kernel from "@/lib/kernel";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const n = await touch0000();
-  return Response.json({ tree: "${symbol}", n, k: k0000.id, f: f0000().id });
+  const n = kernel.f0000().id + kernel.k0000.fields.a;
+  return Response.json({ tree: "${symbol}", n, modules: Object.keys(kernel).length });
 }
 `;
 }
 
 function singleRouteFile() {
-  const uses = Array.from(
-    { length: Math.min(32, MODULES) },
-    (_, i) => `f${String(i).padStart(4, "0")}`
-  );
-  return `import { ${uses.join(", ")} } from "@/lib/kernel";
+  return `import * as kernel from "@/lib/kernel";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const n = ${uses.map((u) => `${u}().id`).join(" + ")};
-  return Response.json({ tree: "single", n, modules: ${MODULES} });
+  const n = kernel.f0000().id + kernel.k0000.fields.a;
+  return Response.json({ tree: "single", n, modules: Object.keys(kernel).length });
 }
 `;
 }

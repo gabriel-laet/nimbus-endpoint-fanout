@@ -8,7 +8,7 @@ This is **not** a copy of a product app. Invented trees:
 |---|---|---|
 | **records** | `app/api/records/**` | A REST-ish resource API: one dynamic `[recordId]` folder with many operations, plus a `public/` folder. ~60 `route.ts` files. |
 | **ingress** | `app/api/ingress/**` | Inbound callbacks (one file per provider/event). ~48 `route.ts` files. |
-| **kernel** | `lib/kernel` | Shared domain barrel every handler imports (schema/auth/ORM-shaped). Default 800 modules. |
+| **kernel** | `lib/kernel` | Shared domain barrel every handler imports (schema/auth/ORM-shaped). Default 2000 modules. Every `route.ts` does `import * as kernel from "@/lib/kernel"` (static, not `import()`). |
 
 Every generated `route.ts` imports `@/lib/kernel`. The unique module set is the same whether you have 1 route or 60.
 
@@ -50,7 +50,7 @@ pnpm build
 pnpm build:webpack
 ```
 
-`NIMBUS_MODULES=1500 pnpm generate:records` grows the kernel if 800 is not enough to OOM on your box.
+`NIMBUS_MODULES=4000 pnpm generate:records` grows the kernel if 2000 is not enough to OOM on your box. First cut used 800 modules and `import()` inside the kernel — that **compiled in ~74s / ~5 GiB** and did **not** stall. Static `import *` of the barrel is required.
 
 ## What “stall” looks like
 
