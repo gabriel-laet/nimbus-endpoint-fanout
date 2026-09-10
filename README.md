@@ -78,14 +78,17 @@ pnpm build:webpack       # control
 ```
 
 Measured on Linux, 8 vCPU, **MemoryMax=16G** (`systemd-run`), Next `16.4.0-canary.15`,
-`turbopackFileSystemCacheForBuild: false`:
+`turbopackFileSystemCacheForBuild: false`. RSS is `/usr/bin/time -v` maximum resident set size.
+The last column is canary.15 + #98522 + the shared-async-chunk-groups change (branch
+`fix/turbopack-shared-async-chunk-groups`, second PR):
 
-| Command | Shape | canary.15 | canary.15 + #98522 (AstPath intern) |
-|---|---|---|---|
-| `pnpm generate:records && pnpm build` | 180 `route.ts` + 180 client pages, 1200 + 1200 kernel | **SIGKILL 137** after 74s, RSS 16.8 GB, `.next` 184 KB / 11 files | **Compiled in 39s**, RSS 4.06 GB |
-| `pnpm generate:single && pnpm build` | 1 route + 1 page, same kernel | Compiled 11s, RSS 1.3 GB | Compiled 6s, RSS 1.15 GB |
-| `pnpm generate:async && pnpm build` | 180 `route.ts`, 2400 dynamic imports (432k groups without sharing) | Compiled 2.7 min, RSS 9.4 GB | Compiled 2.9 min, RSS 9.3 GB |
-| `pnpm generate:async-single && pnpm build` | 1 route, same dynamic imports | Compiled 10s, RSS 1.5 GB | (same kernel; intern does not change this) |
+| Command | Shape | canary.15 | + #98522 (AstPath intern) | + shared async chunk groups |
+|---|---|---|---|---|
+| `pnpm generate:records && pnpm build` | 180 `route.ts` + 180 client pages, 1200 + 1200 kernel | **SIGKILL 137** after 74s, RSS 16.8 GB, `.next` 184 KB / 11 files | **Compiled in 39s**, RSS 4.06 GB | Compiled in 46s, RSS 4.07 GB |
+| `pnpm generate:single && pnpm build` | 1 route + 1 page, same kernel | Compiled 11s, RSS 1.3 GB | Compiled 6s, RSS 1.15 GB | not run |
+| `pnpm generate:async && pnpm build` | 180 `route.ts`, 6000 dynamic imports (1.08M async chunk groups without sharing) | **SIGKILL 137** after 7.5 min, RSS 16.8 GB, `.next` 132 KB / 11 files | **SIGKILL 137** after 8.1 min, RSS 16.8 GB, `.next` 132 KB / 11 files | **Compiled in 77s**, RSS 3.9 GB, `.next` 206 MB / 14,121 files |
+| `NIMBUS_ASYNC=2400 pnpm generate:async && pnpm build` | 180 `route.ts`, 2400 dynamic imports (432k groups) | Compiled 2.7 min, RSS 9.8 GB | Compiled 2.9 min, RSS 9.7 GB | Compiled 31s, RSS 2.2 GB |
+| `pnpm generate:async-single && pnpm build` | 1 route, 6000 dynamic imports | Compiled 17s, RSS 3.2 GB | (same kernel; intern does not change this) | Compiled 19s, RSS 3.0 GB |
 
 `NIMBUS_ROUTES` / `NIMBUS_SCHEMA` / `NIMBUS_KIT` / `NIMBUS_ASYNC` / `NIMBUS_SHARED` override the
 knobs.
