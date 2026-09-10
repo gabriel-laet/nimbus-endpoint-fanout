@@ -30,7 +30,7 @@ is the 16 GiB SIGKILL below.
 vercel/next.js#98522 (prefix-sharing `AstPath`) fixes this shape: the same build compiles at
 ~4 GB.
 
-### 2. Chunking: one async chunk group per server entry (`generate:async`)
+### 2. Chunking: one async chunk group per server entry (`generate:async`, vercel/next.js#98529)
 
 The async tree has no deep expressions and no big modules. Every `route.ts` imports the same
 `lib/async-kernel.ts`, which holds D dynamic `import()`s. Turbopack computes the chunk group of a
@@ -41,7 +41,8 @@ stuck on any single chunk group; it grinds through hundreds of thousands of tiny
 memory grows.
 
 **#98522 does not fix this shape**; it needs shared async chunk groups across referencing
-server entries (one group per `import()` target, not one per parent entry).
+server entries (one group per `import()` target, not one per parent entry), which is what
+vercel/next.js#98529 does.
 
 ## Setup
 
@@ -62,7 +63,7 @@ pnpm build
 pnpm generate:single
 pnpm build
 
-# Chunking stall — async tree (default 180 routes × 6000 dynamic imports)
+# Chunking stall (#98529) — async tree (default 180 routes × 6000 dynamic imports)
 pnpm generate:async
 pnpm build
 
@@ -79,10 +80,9 @@ pnpm build:webpack       # control
 
 Measured on Linux, 8 vCPU, **MemoryMax=16G** (`systemd-run`), Next `16.4.0-canary.15`,
 `turbopackFileSystemCacheForBuild: false`. RSS is `/usr/bin/time -v` maximum resident set size.
-The last column is canary.15 + #98522 + the shared-async-chunk-groups change (branch
-`fix/turbopack-shared-async-chunk-groups`, second PR):
+The last column is canary.15 + #98522 + vercel/next.js#98529 (shared async chunk groups):
 
-| Command | Shape | canary.15 | + #98522 (AstPath intern) | + shared async chunk groups |
+| Command | Shape | canary.15 | + #98522 (AstPath intern) | + #98529 (shared async chunk groups) |
 |---|---|---|---|---|
 | `pnpm generate:records && pnpm build` | 180 `route.ts` + 180 client pages, 1200 + 1200 kernel | **SIGKILL 137** after 74s, RSS 16.8 GB, `.next` 184 KB / 11 files | **Compiled in 39s**, RSS 4.06 GB | Compiled in 46s, RSS 4.07 GB |
 | `pnpm generate:single && pnpm build` | 1 route + 1 page, same kernel | Compiled 11s, RSS 1.3 GB | Compiled 6s, RSS 1.15 GB | not run |
