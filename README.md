@@ -93,6 +93,40 @@ The last column is canary.15 + #98522 + vercel/next.js#98529 (shared async chunk
 `NIMBUS_ROUTES` / `NIMBUS_SCHEMA` / `NIMBUS_KIT` / `NIMBUS_ASYNC` / `NIMBUS_SHARED` override the
 knobs.
 
+## Workaround: make the server `import()`s static for the bundler
+
+`static-lazy-loader.cjs` is a Turbopack loader (wired in `next.config.ts`, enabled
+with `STATIC_LAZY=1`) that rewrites app-internal `import("@/…")` / `import("./…")`
+in **server** code to `Promise.resolve().then(() => require("…"))`. At runtime the
+module is still evaluated on first call, so evaluation order, cycles and error
+propagation match `import()`. For Turbopack the edge is now synchronous, so it
+stops instantiating one async chunk group per (route × `import()` target). Client
+bundles, edge and `node_modules` are excluded by the rule condition
+(`all: ["production", "node", { not: "browser" }, { not: "foreign" }]`).
+
+```bash
+pnpm generate:async && pnpm build              # stock
+pnpm generate:async && pnpm build:static-lazy  # STATIC_LAZY=1
+```
+
+Same machine, same tree, Next `16.4.0-canary.15`, Linux 8 vCPU, `MemoryMax=27G`,
+swap off, `/usr/bin/time -v` max RSS:
+
+| Tree | Stock `next build --turbopack` | With `STATIC_LAZY=1` |
+|---|---|---|
+| `NIMBUS_ASYNC=2400` (180 routes × 2,400 `import()`) | Compiled 2.2 min, RSS 9.5 GB, `.next` 163 MB / 12,079 files | Compiled **11 s**, RSS **2.0 GB**, `.next` 40 MB / 2,128 files |
+| `generate:async` (180 × 6,000) | Compiled 8.7 min, RSS 22.5 GB, `.next` 366 MB / 26,479 files (SIGKILL on the 16 GiB box in the table above) | Compiled **24 s**, RSS **2.7 GB**, `.next` 57 MB / 2,128 files |
+
+The output file count is the tell: stock scales with routes × targets, the
+workaround does not. This does not touch the `records` tree (deep expression
+chains), which is a different shape.
+
+Two wiring notes for Next `16.4.0-canary.15`: do not add a `path` condition to the
+rule (it made the build ~5× slower and ~2× heavier while matching fewer files),
+and if another plugin registers `*.ts` rules (e.g. `withWorkflow`), register this
+one after it under a distinct key such as `**/*.ts` — that plugin overwrites
+the `*.ts` key.
+
 ## What “stall” looks like
 
 - Log stuck on `Creating an optimized production build`

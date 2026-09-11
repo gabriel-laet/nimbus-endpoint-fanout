@@ -12,7 +12,8 @@
     "generate:async": "node generate.mjs --tree=async",
     "generate:async-single": "node generate.mjs --tree=async --single",
     "build": "next build --turbopack",
-    "build:webpack": "next build --webpack"
+    "build:webpack": "next build --webpack",
+    "build:static-lazy": "STATIC_LAZY=1 next build --turbopack"
   },
   "dependencies": {
     "next": "16.4.0-canary.15",
